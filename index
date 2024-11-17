@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconocimiento de Animales</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            font-family: 'Comic Sans MS', sans-serif;
+            background-color: #e3f2fd;
+            background-image: url('https://www.transparenttextures.com/patterns/paw-pattern.png');
+            color: #2c3e50;
+        }
+        h1 {
+            color: #2d3436;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .upload-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border: 2px dashed #3498db;
+            border-radius: 10px;
+            background-color: #ecf0f1;
+            width: 80%;
+            max-width: 400px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .upload-container input[type="file"] {
+            margin: 15px 0;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #prediction {
+            font-size: 1.5rem;
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 30px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        #animal-info {
+            margin-top: 20px;
+            text-align: left;
+            width: 80%;
+            max-width: 600px;
+            font-size: 1.2rem;
+        }
+        #animal-image {
+            margin-top: 20px;
+            max-width: 100%;
+            max-height: 400px; /* Limita la altura de la imagen */
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        @media screen and (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+            button {
+                font-size: 0.9rem;
+                padding: 10px 20px;
+            }
+            .upload-container {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Wild Eye</h1>
+    
+    <div class="upload-container">
+        <p>Sube una imagen de un animal para identificarlo:</p>
+        <input type="file" id="upload-image" accept="image/*">
+        <button id="predict-button" disabled>Predecir Animal</button>
+    </div>
+
+    <div id="prediction"></div>
+    <div id="animal-info"></div>
+    <img id="animal-image" src="" alt="Animal Image" style="display: none;">
+
+    <script>
+        const uploadImage = document.getElementById('upload-image');
+        const predictButton = document.getElementById('predict-button');
+        const predictionDiv = document.getElementById('prediction');
+        const animalInfoDiv = document.getElementById('animal-info');
+        const animalImage = document.getElementById('animal-image');
+
+        let imgData;
+
+        uploadImage.addEventListener('change', () => {
+            const file = uploadImage.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imgData = event.target.result;
+                    predictButton.disabled = false;
+
+                    // Mostrar la imagen cargada
+                    animalImage.src = imgData;
+                    animalImage.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        predictButton.addEventListener('click', () => {
+            if (imgData) {
+                fetch('/predict', {
+                    method: 'POST',
+                    body: JSON.stringify({ image: imgData }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    predictionDiv.innerText = 'Predicción: ' + data.prediction;
+                    animalInfoDiv.innerHTML = `
+                        <h2>Información del Animal</h2>
+                        <p><strong>Nombre:</strong> ${data.info.NOMBRE}</p>
+                        <p><strong>Nombre Científico:</strong> ${data.info['NOMBRE CIENTIFICO']}</p>
+                        <p><strong>Hábitat:</strong> ${data.info.HABITAT}</p>
+                        <p><strong>Alimentación:</strong> ${data.info.ALIMENTACION}</p>
+                        <p><strong>Peligro de Extinción:</strong> ${data.info['PELIGRO DE EXTINCION']}</p>
+                        <p><strong>Características:</strong> ${data.info.CARACTERISTICAS}</p>
+                    `;
+                    
+                    // Scroll hacia la parte inferior de la página para mostrar la información
+                    animalInfoDiv.scrollIntoView({ behavior: 'smooth' });
+                })
+                .catch(error => {
+                    console.error("Error en la predicción:", error);
+                    predictionDiv.innerText = 'Error en la predicción.';
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
